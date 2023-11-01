@@ -4,7 +4,7 @@ import sqlite3
 from flask import Flask, render_template, request
 
 import openai
-openai.api_key = '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'
+openai.api_key = os.getenv("api_key")
 
 def create_connection():
     conn = sqlite3.connect('chat.db')
