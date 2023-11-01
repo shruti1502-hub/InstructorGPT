@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="icon" type="image/x-icon" href="https://freelogopng.com/images/all_img/1681039084chatgpt-icon.png">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>ChatGPT 1:1 Chat</title>
+</head>
+<body onload="fetchChat()">
+    <div class="chat-container">
+        <div class="chat" id="chatMessages"></div>
+        <div class="message-input">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+        <div class="message-input" style="justify-content: center;">
+            <button id="delete-button">Delete Chats</button>
+        </div>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    let browser_messages = [];
+    function fetchChat() {
+        $.ajax({
+            url: '/messages',
+            type: 'GET',
+            success: function(response) {
+                browser_messages = response.messages
+                updateChat(response.messages);
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+    function updateChat(messages) {
+        var chatContent = "";
+        messages.forEach(function(message) {
+            if (message.role === "user") {
+                chatContent += `<div class="message sent"><div class="message-content" id="user">${message.content}</div></div>`;
+            } else if (message.role === "assistant") {
+                chatContent += `<div class="message received"><div class="message-content" id="assistant">${message.content}</div></div>`;
+            }
+        });
+        chatContent += '<div class="typing-animation" id="typing-animation"><span class="dots"></span><span class="dots"></span><span class="dots"></span></div>'
+        $('#chatMessages').html(chatContent);
+        document.getElementById('typing-animation').style.display = 'none';
+        $('#chatMessages').stop().animate({
+            scrollTop: $('#chatMessages')[0].scrollHeight
+        }, 800);
+    }
+
+    function updateChatinBrowser() {
+        var chatContent = "";
+        browser_messages.forEach(function(message) {
+            if (message.role === "user") {
+                chatContent += `<div class="message sent"><div class="message-content" id="user">${message.content}</div></div>`;
+            } else if (message.role === "assistant") {
+                chatContent += `<div class="message received"><div class="message-content" id="assistant">${message.content}</div></div>`;
+            }
+        });
+        chatContent += '<div class="typing-animation" id="typing-animation"><span class="dots"></span><span class="dots"></span><span class="dots"></span></div>'
+        $('#chatMessages').html(chatContent);
+        $("#messageInput").val('');
+        $('#chatMessages').stop().animate({
+            scrollTop: $('#chatMessages')[0].scrollHeight
+        }, 800);
+    }
+
+    $(".message-input").keyup(function(event) {
+        if (event.keyCode === 13) {
+            var message = $("#messageInput").val();
+            if(message.length !== 0){
+                $("#send-button").click();
+            } else {
+                alert('Please type a message before sending')
+            }
+        }
+    });
+
+    $(document).ready(function() {
+        $('#delete-button').click(function() {
+            browser_messages = [];
+            updateChatinBrowser();
+            $.ajax({
+                url: '/delete_chats',
+                type: 'POST',
+                contentType: "application/json",
+                success: function(response) {
+                    fetchChat();
+                    alert('Chats cleared')
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        });
+
+        $("#send-button").click(function() {
+            var message = $("#messageInput").val();
+            browser_messages.push({"role": "user", "content": message})
+            updateChatinBrowser();
+            document.getElementById('typing-animation').style.display = 'block';
+
+            $.ajax({
+                url: '/send_message',
+                type: 'POST',
+                contentType: "application/json",
+                data: JSON.stringify({ message: message }),
+                success: function(response) {
+                    fetchChat();
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
